@@ -1,0 +1,31 @@
+{
+  "sender": {
+    "email": "watcher@notifications.example.net",
+    "name": "Mailbox Watcher"
+  },
+  "interval_hours": 6,
+  "mailboxes": [
+    {
+      "name": "owner-example-org",
+      "host": "mail.infomaniak.com",
+      "port": 993,
+      "username": "owner@example.org",
+      "password_env": "MAILBOX_OWNER_EXAMPLE_ORG_PASSWORD",
+      "folders": ["INBOX"],
+      "notify": ["ceo@example.org"],
+      "include_subject": false
+    },
+    {
+      "name": "owner-example-com",
+      "host": "mail.infomaniak.com",
+      "username": "owner@example.com",
+      "password_env": "MAILBOX_OWNER_EXAMPLE_COM_PASSWORD",
+      "folders": ["INBOX", "Spam"],
+      "notify": ["ceo@example.com", "admin@example.com"]
+    }
+  ],
+  "heartbeat": {
+    "hour_utc": 6,
+    "notify": ["ceo@example.org"]
+  }
+}
