@@ -1,0 +1,75 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Terraform apply
+    needs: checks
+    runs-on: ubuntu-latest
+    # Configure required reviewers and a main-only branch policy on this
+    # environment. All credentials and private configuration live here.
+    environment: production
+    defaults:
+      run:
+        working-directory: terraform
+    env:
+      # Scaleway provider credentials (deploy-only IAM application key).
+      SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+      SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+      SCW_DEFAULT_PROJECT_ID: ${{ vars.SCW_PROJECT_ID }}
+      # The S3 backend reads AWS-style variables; the same Scaleway key is used.
+      AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+      TF_IN_AUTOMATION: "1"
+      TF_INPUT: "0"
+      TF_VAR_project_id: ${{ vars.SCW_PROJECT_ID }}
+      TF_VAR_region: ${{ vars.SCW_REGION || 'fr-par' }}
+      TF_VAR_tem_domain: ${{ vars.TEM_DOMAIN }}
+      TF_VAR_watcher_config: ${{ secrets.WATCHER_CONFIG }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Write backend configuration
+        env:
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          STATE_REGION: ${{ vars.SCW_REGION || 'fr-par' }}
+        run: |
+          test -n "$STATE_BUCKET" || { echo "TF_STATE_BUCKET is not set" >&2; exit 1; }
+          cat > backend.hcl <<EOF
+          bucket = "${STATE_BUCKET}"
+          key    = "mailbox-watcher/terraform.tfstate"
+          region = "${STATE_REGION}"
+          endpoints = { s3 = "https://s3.${STATE_REGION}.scw.cloud" }
+          skip_credentials_validation = true
+          skip_region_validation      = true
+          skip_requesting_account_id  = true
+          skip_metadata_api_check     = true
+          skip_s3_checksum            = true
+          use_lockfile                = true
+          EOF
+
+      - name: Init
+        run: terraform init -backend-config=backend.hcl
+
+      - name: Plan
+        run: terraform plan -out=tfplan
+
+      - name: Apply
+        run: terraform apply tfplan

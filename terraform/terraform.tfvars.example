@@ -1,0 +1,23 @@
+# Copy to terraform.tfvars (git-ignored) for local runs.
+# In CI these values come from the GitHub environment "production".
+
+project_id = "11111111-2222-3333-4444-555555555555"
+region     = "fr-par"
+tem_domain = "notifications.example.net"
+
+# Contents of your private config.json (see config.example.json).
+watcher_config = <<-JSON
+  {
+    "sender": {"email": "watcher@notifications.example.net"},
+    "interval_hours": 6,
+    "mailboxes": [
+      {
+        "name": "owner-example-org",
+        "host": "mail.infomaniak.com",
+        "username": "owner@example.org",
+        "password_env": "MAILBOX_OWNER_EXAMPLE_ORG_PASSWORD",
+        "notify": ["ceo@example.org"]
+      }
+    ]
+  }
+JSON

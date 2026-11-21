@@ -1,0 +1,22 @@
+# Copy to backend.hcl (git-ignored) for local use:
+#   terraform -chdir=terraform init -backend-config=backend.hcl
+# Credentials: export AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY with a
+# Scaleway API key that may access the state bucket.
+
+bucket = "example-mailbox-watcher-tfstate"
+key    = "mailbox-watcher/terraform.tfstate"
+region = "fr-par"
+
+endpoints = {
+  s3 = "https://s3.fr-par.scw.cloud"
+}
+
+skip_credentials_validation = true
+skip_region_validation      = true
+skip_requesting_account_id  = true
+skip_metadata_api_check     = true
+skip_s3_checksum            = true
+
+# S3-native locking (Terraform >= 1.10). Remove if the bucket rejects
+# conditional writes.
+use_lockfile = true
